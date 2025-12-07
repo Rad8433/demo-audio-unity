@@ -3,15 +3,25 @@ using UnityEngine;
 public class GenerateurEnnemis : MonoBehaviour
 {
     [Header("Paramètres d'apparition")]
-    public GameObject prefabEnnemi;     // Prefab de l’ennemi à instancier
+    public GameObject prefabEnnemi;          // Prefab de l’ennemi à instancier
     public float intervalleApparition = 1.5f;
-    public float plageSpawnX = 8f;      // Largeur de la zone où les ennemis peuvent apparaître
+    public float plageSpawnX = 8f;           // Largeur de la zone où les ennemis peuvent apparaître
 
     [Header("Paramètres des ennemis")]
     public float vitesseEnnemi = 3f;
     public float positionDestructionY = -6f;
 
+    [Header("Audio")]
+    public AudioClip sonApparition;          // Son joué à chaque spawn
+
+    private AudioSource sourceAudio;         // Source audio du générateur
     private float minuterie = 0f;
+
+    private void Awake()
+    {
+        // On récupère l’AudioSource sur ce GameObject (à ajouter dans Unity)
+        sourceAudio = GetComponent<AudioSource>();
+    }
 
     private void Update()
     {
@@ -39,6 +49,10 @@ public class GenerateurEnnemis : MonoBehaviour
         DeplacementEnnemi deplacement = ennemi.AddComponent<DeplacementEnnemi>();
         deplacement.vitesse = vitesseEnnemi;
         deplacement.positionDestructionY = positionDestructionY;
+
+        // Jouer le son d'apparition
+        if (sourceAudio != null && sonApparition != null)
+            sourceAudio.PlayOneShot(sonApparition);
     }
 }
 

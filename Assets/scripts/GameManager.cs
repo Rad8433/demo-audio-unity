@@ -15,9 +15,12 @@ public class GestionnaireJeu : MonoBehaviour
     public TMP_Text texteVies;          // Affiche le nombre de vies
     public GameObject panneauGameOver;  // Panneau affiché à la fin du jeu
 
-    [Header("Audio")]
+    [Header("Audio - Effets")]
     public AudioClip sonGameOver;       // Son lorsque le panneau apparaît
     public AudioClip sonMort;           // Son lorsqu’on perd la dernière vie
+
+    [Header("Audio - Musique de fond")]
+    public AudioSource sourceMusiqueTheme; // Musique de thème (séparée du joueur)
 
     private AudioSource sourceAudio;
     private bool jeuTermine = false;
@@ -72,6 +75,10 @@ public class GestionnaireJeu : MonoBehaviour
         PlayerController joueur = FindObjectOfType<PlayerController>();
         if (joueur != null)
             joueur.mouvementAutorise = false;
+
+        // Arrêter la musique de thème si elle existe
+        if (sourceMusiqueTheme != null)
+            sourceMusiqueTheme.Stop();
 
         // Jouer le son de mort immédiatement
         if (sourceAudio != null && sonMort != null)
