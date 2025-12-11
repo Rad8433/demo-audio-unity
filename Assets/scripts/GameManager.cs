@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
@@ -12,35 +12,38 @@ public class GestionnaireJeu : MonoBehaviour
     private int viesActuelles;
 
     [Header("Interface Utilisateur (UI)")]
-    public TMP_Text texteVies;          // Affiche le nombre de vies
-    public GameObject panneauGameOver;  // Panneau affiché à la fin du jeu
+    public TMP_Text texteVies;
+    public GameObject panneauGameOver;
 
     [Header("Audio - Effets")]
-    public AudioClip sonDegat;          // Son joué à chaque perte d'une vie
-    public float volumeSonDegat = 1f;   // Volume pour le son de dégât (0..1)
-    public AudioClip sonMort;           // Son lorsqu’on perd la dernière vie
-    public AudioClip sonGameOver;       // Son lorsque le panneau apparaît
+    public AudioClip sonDegat;
+    public float volumeSonDegat = 1f;
+    public AudioClip sonMort;
+
+    [Header("Audio - Alerte (1 vie restante)")]
+    public AudioSource sourceAlerte; // ðŸ”” ALERT AUDIO SOURCE (Clip set in Inspector)
+
+    [Header("Audio - Musique Game Over")]
+    public AudioSource sourceMusiqueGameOver;
 
     [Header("Audio - Musique de fond")]
-    public AudioSource sourceMusiqueTheme; // Musique de thème (séparée du joueur)
+    public AudioSource sourceMusiqueTheme;
 
-    // Source d'effets audio (utilisée pour PlayOneShot)
-    private AudioSource sourceAudio;
+    private AudioSource sourceAudio; // SFX source
     private bool jeuTermine = false;
+
+    private bool alerteDejaJouee = false; // Prevent multiple alerts
 
     private void Awake()
     {
-        // Création du singleton (accès global)
         if (Instance == null)
             Instance = this;
         else
             Destroy(gameObject);
 
-        // Récupérer l'AudioSource sur ce GameObject (ou laisser l'éditeur l'assigner)
         sourceAudio = GetComponent<AudioSource>();
         if (sourceAudio == null)
         {
-            // fallback : on ajoute une AudioSource si nécessaire (facilite le test en éditeur)
             sourceAudio = gameObject.AddComponent<AudioSource>();
             sourceAudio.playOnAwake = false;
         }
@@ -54,23 +57,31 @@ public class GestionnaireJeu : MonoBehaviour
         if (panneauGameOver != null)
             panneauGameOver.SetActive(false);
 
-        // S’assurer que le temps est normal au début
         Time.timeScale = 1f;
+
+        if (sourceMusiqueTheme != null)
+            sourceMusiqueTheme.Play();
     }
 
-    // Appelée quand le joueur subit un dégât (par ex. collision)
     public void SubirDegat()
     {
         if (jeuTermine) return;
 
-        // Jouer le son de dégât immédiatement (même si on va aussi déclencher GameOver ensuite)
+        // Son de dÃ©gÃ¢t
         if (sourceAudio != null && sonDegat != null)
-        {
             sourceAudio.PlayOneShot(sonDegat, Mathf.Clamp01(volumeSonDegat));
-        }
 
         viesActuelles--;
         MettreAJourVies();
+
+        // ðŸ”” ALERT SOUND when 1 life left
+        if (viesActuelles == 1 && !alerteDejaJouee)
+        {
+            if (sourceAlerte != null)
+                sourceAlerte.Play();   // âœ” plays full AudioSource
+
+            alerteDejaJouee = true;
+        }
 
         if (viesActuelles <= 0)
         {
@@ -88,37 +99,36 @@ public class GestionnaireJeu : MonoBehaviour
     {
         jeuTermine = true;
 
-        // Désactiver le mouvement du joueur immédiatement
         PlayerController joueur = FindObjectOfType<PlayerController>();
         if (joueur != null)
             joueur.mouvementAutorise = false;
 
-        // Arrêter la musique de thème si elle existe
         if (sourceMusiqueTheme != null)
             sourceMusiqueTheme.Stop();
 
-        // Jouer le son de mort immédiatement (dernière vie)
         if (sourceAudio != null && sonMort != null)
             sourceAudio.PlayOneShot(sonMort);
 
-        // Attendre 1,5 seconde avant d’afficher le panneau
+        // Stop alert sound when game ends
+        if (sourceAlerte != null)
+            sourceAlerte.Stop();
+
         yield return new WaitForSeconds(1.5f);
 
-        // Afficher le panneau Game Over
         if (panneauGameOver != null)
             panneauGameOver.SetActive(true);
 
-        // Jouer le son du Game Over (panel)
-        if (sourceAudio != null && sonGameOver != null)
-            sourceAudio.PlayOneShot(sonGameOver);
+        if (sourceMusiqueGameOver != null)
+        {
+            sourceMusiqueGameOver.loop = false;
+            sourceMusiqueGameOver.Play();
+        }
 
-        // Geler le jeu après l'affichage du panneau
         Time.timeScale = 0f;
     }
 
     private void Update()
     {
-        // Réinitialiser la scène en appuyant sur R
         if (jeuTermine && Input.GetKeyDown(KeyCode.R))
         {
             Time.timeScale = 1f;
@@ -126,7 +136,6 @@ public class GestionnaireJeu : MonoBehaviour
         }
     }
 
-    // Méthode publique utilitaire pour jouer un clip si besoin ailleurs
     public void JouerSon(AudioClip clip, float volume = 1f)
     {
         if (clip != null && sourceAudio != null)
