@@ -13,22 +13,15 @@ public class GenerateurEnnemis : MonoBehaviour
 
     [Header("Audio")]
     public AudioClip sonApparition;          // Son joué à chaque spawn
+    [Range(0f, 1f)]
+    public float volumeSonApparition = 1f;   // Volume utilisé pour PlayClipAtPoint
 
-    private AudioSource sourceAudio;         // Source audio du générateur
     private float minuterie = 0f;
-
-    private void Awake()
-    {
-        // On récupère l’AudioSource sur ce GameObject (à ajouter dans Unity)
-        sourceAudio = GetComponent<AudioSource>();
-    }
 
     private void Update()
     {
-        // Faire avancer la minuterie
         minuterie += Time.deltaTime;
 
-        // Si le temps écoulé dépasse l’intervalle, on fait apparaître un ennemi
         if (minuterie >= intervalleApparition)
         {
             minuterie = 0f;
@@ -38,21 +31,25 @@ public class GenerateurEnnemis : MonoBehaviour
 
     void ApparaitreEnnemi()
     {
-        // Choisir une position aléatoire en X
         float randomX = Random.Range(-plageSpawnX, plageSpawnX);
         Vector3 posSpawn = new Vector3(randomX, transform.position.y, 0f);
 
-        // Instancier un ennemi
         GameObject ennemi = Instantiate(prefabEnnemi, posSpawn, Quaternion.identity);
 
-        // Ajouter un script de déplacement
         DeplacementEnnemi deplacement = ennemi.AddComponent<DeplacementEnnemi>();
         deplacement.vitesse = vitesseEnnemi;
         deplacement.positionDestructionY = positionDestructionY;
 
-        // Jouer le son d'apparition
-        if (sourceAudio != null && sonApparition != null)
-            sourceAudio.PlayOneShot(sonApparition);
+        // Jouer le son d'apparition via PlayClipAtPoint (ne nécessite pas d'AudioSource attaché)
+        if (sonApparition == null)
+        {
+            Debug.LogWarning("[GenerateurEnnemis] sonApparition non assigné !");
+            return;
+        }
+
+        Vector3 listenPos = (Camera.main != null) ? Camera.main.transform.position : transform.position;
+        AudioSource.PlayClipAtPoint(sonApparition, listenPos, Mathf.Clamp01(volumeSonApparition));
+        Debug.Log("[GenerateurEnnemis] PlayClipAtPoint appelé pour le son d'apparition.");
     }
 }
 
@@ -63,10 +60,8 @@ public class DeplacementEnnemi : MonoBehaviour
 
     private void Update()
     {
-        // Déplacement vers le bas
         transform.position += Vector3.down * vitesse * Time.deltaTime;
 
-        // Détruire l’objet s’il sort de l’écran
         if (transform.position.y <= positionDestructionY)
         {
             Destroy(gameObject);

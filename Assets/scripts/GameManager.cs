@@ -16,12 +16,15 @@ public class GestionnaireJeu : MonoBehaviour
     public GameObject panneauGameOver;  // Panneau affiché à la fin du jeu
 
     [Header("Audio - Effets")]
-    public AudioClip sonGameOver;       // Son lorsque le panneau apparaît
+    public AudioClip sonDegat;          // Son joué à chaque perte d'une vie
+    public float volumeSonDegat = 1f;   // Volume pour le son de dégât (0..1)
     public AudioClip sonMort;           // Son lorsqu’on perd la dernière vie
+    public AudioClip sonGameOver;       // Son lorsque le panneau apparaît
 
     [Header("Audio - Musique de fond")]
     public AudioSource sourceMusiqueTheme; // Musique de thème (séparée du joueur)
 
+    // Source d'effets audio (utilisée pour PlayOneShot)
     private AudioSource sourceAudio;
     private bool jeuTermine = false;
 
@@ -33,7 +36,14 @@ public class GestionnaireJeu : MonoBehaviour
         else
             Destroy(gameObject);
 
+        // Récupérer l'AudioSource sur ce GameObject (ou laisser l'éditeur l'assigner)
         sourceAudio = GetComponent<AudioSource>();
+        if (sourceAudio == null)
+        {
+            // fallback : on ajoute une AudioSource si nécessaire (facilite le test en éditeur)
+            sourceAudio = gameObject.AddComponent<AudioSource>();
+            sourceAudio.playOnAwake = false;
+        }
     }
 
     private void Start()
@@ -48,9 +58,16 @@ public class GestionnaireJeu : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+    // Appelée quand le joueur subit un dégât (par ex. collision)
     public void SubirDegat()
     {
         if (jeuTermine) return;
+
+        // Jouer le son de dégât immédiatement (même si on va aussi déclencher GameOver ensuite)
+        if (sourceAudio != null && sonDegat != null)
+        {
+            sourceAudio.PlayOneShot(sonDegat, Mathf.Clamp01(volumeSonDegat));
+        }
 
         viesActuelles--;
         MettreAJourVies();
@@ -80,7 +97,7 @@ public class GestionnaireJeu : MonoBehaviour
         if (sourceMusiqueTheme != null)
             sourceMusiqueTheme.Stop();
 
-        // Jouer le son de mort immédiatement
+        // Jouer le son de mort immédiatement (dernière vie)
         if (sourceAudio != null && sonMort != null)
             sourceAudio.PlayOneShot(sonMort);
 
@@ -91,7 +108,7 @@ public class GestionnaireJeu : MonoBehaviour
         if (panneauGameOver != null)
             panneauGameOver.SetActive(true);
 
-        // Jouer le son du Game Over
+        // Jouer le son du Game Over (panel)
         if (sourceAudio != null && sonGameOver != null)
             sourceAudio.PlayOneShot(sonGameOver);
 
@@ -107,5 +124,12 @@ public class GestionnaireJeu : MonoBehaviour
             Time.timeScale = 1f;
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
+    }
+
+    // Méthode publique utilitaire pour jouer un clip si besoin ailleurs
+    public void JouerSon(AudioClip clip, float volume = 1f)
+    {
+        if (clip != null && sourceAudio != null)
+            sourceAudio.PlayOneShot(clip, Mathf.Clamp01(volume));
     }
 }

@@ -8,11 +8,10 @@ public class PlayerController : MonoBehaviour
     public float vitesseDeplacement = 5f;
 
     [Header("Audio")]
-    public AudioClip sonDeplacement;
-    public AudioClip sonCoup;
+    public AudioClip sonDeplacement;   // <-- seulement le son de mouvement
 
     [HideInInspector]
-    public bool mouvementAutorise = true;   // <- AJOUT ICI
+    public bool mouvementAutorise = true;
 
     private Rigidbody2D corpsRigide2D;
     private AudioSource sourceAudio;
@@ -77,12 +76,8 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.CompareTag("Enemy"))
         {
-            if (sonCoup != null)
-                sourceAudio.PlayOneShot(sonCoup);
-
-            if (GestionnaireJeu.Instance != null)
-                GestionnaireJeu.Instance.SubirDegat();
-
+            // plus de son ici !
+            GestionnaireJeu.Instance?.SubirDegat();
             Destroy(collision.gameObject);
         }
     }
