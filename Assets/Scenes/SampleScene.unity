@@ -495,7 +495,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: a41906461c3fe4249a0c6fa2497f4f29, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.4
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -724,6 +724,8 @@ MonoBehaviour:
   sourceAlerte: {fileID: 1995798644}
   sourceMusiqueGameOver: {fileID: 480882483}
   sourceMusiqueTheme: {fileID: 1101483878}
+  sonSelection: {fileID: 8300000, guid: 71cf241bc5a6b6e4ca0a9164dd890053, type: 3}
+  volumeSonSelection: 1
 --- !u!4 &772424254
 Transform:
   m_ObjectHideFlags: 0
@@ -1107,7 +1109,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: efbcd2329af83f345a3f8836abc72346, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.4
   m_Pitch: 1
   Loop: 1
   Mute: 0

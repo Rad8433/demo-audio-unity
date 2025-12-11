@@ -2,10 +2,14 @@
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
+using System; // Needed for Action
 
 public class GestionnaireJeu : MonoBehaviour
 {
     public static GestionnaireJeu Instance;
+
+    // Event called when game is over
+    public event Action OnGameOver;
 
     [Header("Gameplay")]
     public int viesMax = 3;
@@ -21,7 +25,7 @@ public class GestionnaireJeu : MonoBehaviour
     public AudioClip sonMort;
 
     [Header("Audio - Alerte (1 vie restante)")]
-    public AudioSource sourceAlerte; // 🔔 ALERT AUDIO SOURCE (Clip set in Inspector)
+    public AudioSource sourceAlerte;
 
     [Header("Audio - Musique Game Over")]
     public AudioSource sourceMusiqueGameOver;
@@ -29,10 +33,13 @@ public class GestionnaireJeu : MonoBehaviour
     [Header("Audio - Musique de fond")]
     public AudioSource sourceMusiqueTheme;
 
-    private AudioSource sourceAudio; // SFX source
-    private bool jeuTermine = false;
+    [Header("Audio - Sélection (Restart)")]
+    public AudioClip sonSelection;
+    public float volumeSonSelection = 1f;
 
-    private bool alerteDejaJouee = false; // Prevent multiple alerts
+    private AudioSource sourceAudio;
+    [HideInInspector] public bool jeuTermine = false;
+    private bool alerteDejaJouee = false;
 
     private void Awake()
     {
@@ -47,6 +54,8 @@ public class GestionnaireJeu : MonoBehaviour
             sourceAudio = gameObject.AddComponent<AudioSource>();
             sourceAudio.playOnAwake = false;
         }
+
+        sourceAudio.ignoreListenerPause = true;
     }
 
     private void Start()
@@ -67,26 +76,22 @@ public class GestionnaireJeu : MonoBehaviour
     {
         if (jeuTermine) return;
 
-        // Son de dégât
         if (sourceAudio != null && sonDegat != null)
             sourceAudio.PlayOneShot(sonDegat, Mathf.Clamp01(volumeSonDegat));
 
         viesActuelles--;
         MettreAJourVies();
 
-        // 🔔 ALERT SOUND when 1 life left
         if (viesActuelles == 1 && !alerteDejaJouee)
         {
             if (sourceAlerte != null)
-                sourceAlerte.Play();   // ✔ plays full AudioSource
+                sourceAlerte.Play();
 
             alerteDejaJouee = true;
         }
 
         if (viesActuelles <= 0)
-        {
             StartCoroutine(SequenceGameOver());
-        }
     }
 
     void MettreAJourVies()
@@ -99,6 +104,9 @@ public class GestionnaireJeu : MonoBehaviour
     {
         jeuTermine = true;
 
+        // Notify all listeners that the game is over
+        OnGameOver?.Invoke();
+
         PlayerController joueur = FindObjectOfType<PlayerController>();
         if (joueur != null)
             joueur.mouvementAutorise = false;
@@ -109,7 +117,6 @@ public class GestionnaireJeu : MonoBehaviour
         if (sourceAudio != null && sonMort != null)
             sourceAudio.PlayOneShot(sonMort);
 
-        // Stop alert sound when game ends
         if (sourceAlerte != null)
             sourceAlerte.Stop();
 
@@ -131,9 +138,18 @@ public class GestionnaireJeu : MonoBehaviour
     {
         if (jeuTermine && Input.GetKeyDown(KeyCode.R))
         {
-            Time.timeScale = 1f;
-            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            if (sonSelection != null && sourceAudio != null)
+                sourceAudio.PlayOneShot(sonSelection, Mathf.Clamp01(volumeSonSelection));
+
+            StartCoroutine(ReloadSceneAvecDelay(0.5f));
         }
+    }
+
+    private System.Collections.IEnumerator ReloadSceneAvecDelay(float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     public void JouerSon(AudioClip clip, float volume = 1f)

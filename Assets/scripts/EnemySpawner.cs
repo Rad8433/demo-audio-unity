@@ -14,12 +14,55 @@ public class GenerateurEnnemis : MonoBehaviour
     [Header("Audio")]
     public AudioClip sonApparition;          // Son joué à chaque spawn
     [Range(0f, 1f)]
-    public float volumeSonApparition = 1f;   // Volume utilisé pour PlayClipAtPoint
+    public float volumeSonApparition = 1f;
 
     private float minuterie = 0f;
+    private AudioSource audioSource;
+    private bool jeuTermine = false;
+
+    private void Awake()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+        }
+
+        audioSource.ignoreListenerPause = true;
+    }
+
+    private void OnEnable()
+    {
+        // Subscribe to the game over event
+        if (GestionnaireJeu.Instance != null)
+            GestionnaireJeu.Instance.OnGameOver += OnGameOver;
+    }
+
+    private void OnDisable()
+    {
+        // Unsubscribe to prevent memory leaks
+        if (GestionnaireJeu.Instance != null)
+            GestionnaireJeu.Instance.OnGameOver -= OnGameOver;
+    }
+
+    private void OnGameOver()
+    {
+        jeuTermine = true;
+
+        // Stop any currently playing spawn sound
+        if (audioSource.isPlaying)
+            audioSource.Stop();
+
+        // Optionally, disable the spawner
+        enabled = false;
+    }
 
     private void Update()
     {
+        if (jeuTermine) return;
+
+        // Normal spawning logic
         minuterie += Time.deltaTime;
 
         if (minuterie >= intervalleApparition)
@@ -29,7 +72,7 @@ public class GenerateurEnnemis : MonoBehaviour
         }
     }
 
-    void ApparaitreEnnemi()
+    private void ApparaitreEnnemi()
     {
         float randomX = Random.Range(-plageSpawnX, plageSpawnX);
         Vector3 posSpawn = new Vector3(randomX, transform.position.y, 0f);
@@ -40,16 +83,11 @@ public class GenerateurEnnemis : MonoBehaviour
         deplacement.vitesse = vitesseEnnemi;
         deplacement.positionDestructionY = positionDestructionY;
 
-        // Jouer le son d'apparition via PlayClipAtPoint (ne nécessite pas d'AudioSource attaché)
-        if (sonApparition == null)
-        {
+        // Play spawn sound via AudioSource
+        if (sonApparition != null)
+            audioSource.PlayOneShot(sonApparition, Mathf.Clamp01(volumeSonApparition));
+        else
             Debug.LogWarning("[GenerateurEnnemis] sonApparition non assigné !");
-            return;
-        }
-
-        Vector3 listenPos = (Camera.main != null) ? Camera.main.transform.position : transform.position;
-        AudioSource.PlayClipAtPoint(sonApparition, listenPos, Mathf.Clamp01(volumeSonApparition));
-        Debug.Log("[GenerateurEnnemis] PlayClipAtPoint appelé pour le son d'apparition.");
     }
 }
 
@@ -63,8 +101,6 @@ public class DeplacementEnnemi : MonoBehaviour
         transform.position += Vector3.down * vitesse * Time.deltaTime;
 
         if (transform.position.y <= positionDestructionY)
-        {
             Destroy(gameObject);
-        }
     }
 }
